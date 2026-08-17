@@ -47,35 +47,37 @@ export function VerseView({
 
   if (readingMode === "mushaf") {
     return (
-      <div
-        dir="rtl"
-        className={`${arabicClassName} mushaf-border ruled-lines-mushaf bg-surface px-5 py-8 text-justify text-foreground sm:px-8 sm:py-10 ${
-          tajweedEnabled ? "tajweed-on" : ""
-        }`}
-        style={{ fontSize: `${fontSize}rem`, lineHeight: 2.35 }}
-      >
-        {text.verses.map((v) => (
-          <span
-            key={v.number}
-            data-ayah={v.number}
-            className={`rounded transition-colors duration-700 ${
-              currentAyah === v.number || flashAyah === v.number
-                ? "bg-accent-soft"
-                : ""
-            }`}
-          >
-            <TajweedText segments={v.tajweed} />{" "}
-            <button
-              type="button"
-              onClick={() => onAyahClick(v.number)}
-              data-active={currentAyah === v.number}
-              className="ayah-marker cursor-pointer hover:bg-accent-soft"
-              aria-label={`Play verse ${v.number}`}
+      <div className="mushaf-border bg-surface px-5 py-8 sm:px-8 sm:py-10">
+        <div
+          dir="rtl"
+          className={`${arabicClassName} ruled-lines-mushaf text-justify text-foreground ${
+            tajweedEnabled ? "tajweed-on" : ""
+          }`}
+          style={{ fontSize: `${fontSize}rem`, lineHeight: 2.35 }}
+        >
+          {text.verses.map((v) => (
+            <span
+              key={v.number}
+              data-ayah={v.number}
+              className={`rounded transition-colors duration-700 ${
+                currentAyah === v.number || flashAyah === v.number
+                  ? "bg-accent-soft"
+                  : ""
+              }`}
             >
-              {toArabicIndicNumeral(v.number)}
-            </button>
-          </span>
-        ))}
+              <TajweedText segments={v.tajweed} />{" "}
+              <button
+                type="button"
+                onClick={() => onAyahClick(v.number)}
+                data-active={currentAyah === v.number}
+                className="ayah-marker cursor-pointer hover:bg-accent-soft"
+                aria-label={`Play verse ${v.number}`}
+              >
+                {toArabicIndicNumeral(v.number)}
+              </button>
+            </span>
+          ))}
+        </div>
       </div>
     );
   }
