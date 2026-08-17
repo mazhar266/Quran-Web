@@ -12,10 +12,6 @@ const THEMES: { key: ThemeName; label: string }[] = [
   { key: "dark", label: "Dark" },
 ];
 
-function toCssVar(rule: string): string {
-  return rule.replace(/([A-Z])/g, "-$1").toLowerCase();
-}
-
 const TRANSLATIONS: { key: "en" | "id" | "ar"; label: string }[] = [
   { key: "en", label: "English" },
   { key: "id", label: "Indonesian" },
@@ -131,7 +127,7 @@ export function SettingsSheet({
                 Tajweed colours
               </h3>
               <p className="mt-0.5 text-[11px] text-muted">
-                Best-effort colouring, computed from the script
+                From Quran tajweed annotation data
               </p>
             </div>
             <button
@@ -161,7 +157,7 @@ export function SettingsSheet({
                   <span
                     aria-hidden
                     className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: `var(--tajweed-${toCssVar(r.rule)})` }}
+                    style={{ background: `var(${r.cssVar})` }}
                   />
                   <span className="text-xs text-foreground">{r.label}</span>
                 </li>

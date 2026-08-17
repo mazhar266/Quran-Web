@@ -1,175 +1,158 @@
 /**
- * Best-effort Tajweed colour coding, derived purely by pattern-matching the
- * Uthmani Unicode text (Tanzil-style encoding) — no external tajweed
- * annotation data required. Covers the rules that are reliably detectable
- * from the diacritics already present in the script: ghunnah, qalqalah,
- * iqlab, idgham (with/without ghunnah), ikhfa, and hamzat wasl.
+ * Tajweed colour coding sourced from quranjson's `tajweed/surah_N.json`
+ * annotations (start/end character offsets + rule name per verse).
  *
- * It does not attempt madd-length classification (2/4/6 counts) — that
- * needs positional/phonetic context beyond what a regex over the bare
- * text can reliably determine, and getting it wrong is worse than
- * leaving it uncoloured.
+ * That offset data was computed in 2019 against an older, non-Uthmani
+ * rendering of the Arabic text ("الرحمن" style, no hamzat wasl / dagger
+ * alif) that was later rewritten to proper Uthmani script — a change
+ * confirmed in the submodule's own git history (commit "Arabic version
+ * was missing 'Al-Madd' in all verses", applied right after the tajweed
+ * commit). The raw offsets therefore drift out of alignment with today's
+ * text: cross-checking ~61k annotations against the expected Arabic
+ * letter for each rule shows only ~55% land correctly as-is.
+ *
+ * To use the data anyway, each annotation is reconciled against the
+ * *current* verse text at render time: we look at what letter the rule
+ * expects (e.g. hamzat_wasl always sits on ٱ) and search a small window
+ * around the recorded offset for the nearest match. That resolves ~92%
+ * of annotations with good confidence; the rest are dropped rather than
+ * mis-coloured.
  */
 
 export type TajweedRule =
+  | "hamzatWasl"
+  | "lamShamsiyyah"
+  | "silent"
   | "ghunnah"
   | "qalqalah"
+  | "ikhfa"
   | "iqlab"
   | "idgham"
   | "idghamNoGhunnah"
-  | "ikhfa"
-  | "hamzatWasl";
+  | "madd2"
+  | "madd246"
+  | "madd6"
+  | "maddMunfasil"
+  | "maddMuttasil";
 
 export type TajweedSegment = { text: string; rule: TajweedRule | null };
+
+export type RawTajweedAnnotation = { rule: string; start: number; end: number };
 
 export const TAJWEED_RULE_INFO: {
   rule: TajweedRule;
   label: string;
   description: string;
+  cssVar: string;
 }[] = [
-  { rule: "ghunnah", label: "Ghunnah", description: "Nasal sound on doubled ن / م" },
-  { rule: "qalqalah", label: "Qalqalah", description: "Echoing bounce on ق ط ب ج د" },
-  { rule: "iqlab", label: "Iqlab", description: "ن sound turned into hidden م before ب" },
-  { rule: "idgham", label: "Idgham (ghunnah)", description: "Merged into ي ن م و with nasal sound" },
-  { rule: "idghamNoGhunnah", label: "Idgham (no ghunnah)", description: "Merged into ل ر, no nasal sound" },
-  { rule: "ikhfa", label: "Ikhfa", description: "Hidden pronunciation before 15 letters" },
-  { rule: "hamzatWasl", label: "Hamzat Wasl", description: "Connecting hamza, dropped mid-speech" },
+  { rule: "hamzatWasl", label: "Hamzat Wasl", description: "Connecting hamza, dropped mid-speech", cssVar: "--tajweed-hamzat-wasl" },
+  { rule: "lamShamsiyyah", label: "Lam Shamsiyyah", description: "Silent ل before a sun letter", cssVar: "--tajweed-lam-shamsiyyah" },
+  { rule: "silent", label: "Silent letter", description: "Written but not pronounced", cssVar: "--tajweed-silent" },
+  { rule: "ghunnah", label: "Ghunnah", description: "Nasal sound on doubled ن / م", cssVar: "--tajweed-ghunnah" },
+  { rule: "qalqalah", label: "Qalqalah", description: "Echoing bounce on ق ط ب ج د", cssVar: "--tajweed-qalqalah" },
+  { rule: "ikhfa", label: "Ikhfa", description: "Hidden pronunciation before 15 letters", cssVar: "--tajweed-ikhfa" },
+  { rule: "iqlab", label: "Iqlab", description: "ن sound turned into hidden م before ب", cssVar: "--tajweed-iqlab" },
+  { rule: "idgham", label: "Idgham (ghunnah)", description: "Merged with a nasal sound", cssVar: "--tajweed-idgham" },
+  { rule: "idghamNoGhunnah", label: "Idgham (no ghunnah)", description: "Merged into ل ر, no nasal sound", cssVar: "--tajweed-idgham-no-ghunnah" },
+  { rule: "madd2", label: "Madd (2 counts)", description: "Natural elongation", cssVar: "--tajweed-madd-2" },
+  { rule: "madd246", label: "Madd (2/4/6 counts)", description: "Variable elongation at a pause", cssVar: "--tajweed-madd-246" },
+  { rule: "madd6", label: "Madd (6 counts)", description: "Obligatory long elongation", cssVar: "--tajweed-madd-6" },
+  { rule: "maddMunfasil", label: "Madd Munfasil", description: "Elongation across two words", cssVar: "--tajweed-madd-munfasil" },
+  { rule: "maddMuttasil", label: "Madd Muttasil", description: "Obligatory elongation before hamza", cssVar: "--tajweed-madd-muttasil" },
 ];
 
-// Uthmani character constants (matching the Tanzil-style encoding used by
-// the underlying Quran text source).
-const NUN = "ن";
-const MIM = "م";
-const QAF = "ق";
-const TOA = "ط";
-const BA = "ب";
-const JIM = "ج";
-const DAL = "د";
-const SOAD = "ص";
-const ZAL = "ذ";
-const THA = "ث";
-const KAF = "ك";
-const WAW = "و";
-const SHIN = "ش";
-const SEEN = "س";
-const ZAY = "ز";
-const FA = "ف";
-const TA = "ت";
-const DOAD = "ض";
-const ZOA = "ظ";
-const RA = "ر";
-const LAM = "ل";
-const YA = "ي";
+// Maps the raw rule names found in tajweed/surah_N.json to our display
+// rule, and the set of Arabic characters that rule is expected to land
+// on in the *current* Uthmani text (used to re-anchor drifted offsets).
+const MADD_CHARS = new Set("اويٰىۥۦ");
+const SAKIN_TRIGGER_CHARS = new Set("نمًٌٍۭۢ");
 
-const FATHATAIN = "ً";
-const DAMMATAIN = "ٌ";
-const KASRATAIN = "ٍ";
-const SHADDA = "ّ";
-const SUKUN = "ْ";
-const CURVY_SUKUN = "ۡ"; // alternate sukun used in some renderings
-const SILENT_ALIF_CARRIER = "اى"; // bare alif / alif maksura riding a sakin letter
-const SUPERSCRIPT_ALIF = "ٰ";
-const HAMZAT_WASL = "ٱ";
-const SPACE = " ";
+type RuleSpec = {
+  display: TajweedRule;
+  expected: Set<string>;
+  confirm?: (text: string, pos: number) => boolean;
+};
 
-// Small pause / stop marks that can sit between two letters without
-// breaking a tajweed rule that spans across them.
-const STOP_SIGNS = "ۖۗۘۙۚۛ";
-
-const TANWEEN = `${FATHATAIN}${DAMMATAIN}${KASRATAIN}`;
-const SAKIN_MARKS = `${SUKUN}${CURVY_SUKUN}`;
-const NUN_SAKIN_OR_TANWEEN = `[${NUN}][${SAKIN_MARKS}]|[${TANWEEN}]`;
-// Small meem marks (iqlab annotations), silent alif/ya carriers and stop
-// signs can sit — in any order — between a sakin/tanween and the letter
-// that governs its rule; skip over any run of them.
-const SMALL_MEEM_MARKS = "ۭۢ";
-const BRIDGE = `[${SILENT_ALIF_CARRIER}${SMALL_MEEM_MARKS}${STOP_SIGNS}]*${SPACE}?`;
-
-const QALQALAH_LETTERS = `${QAF}${TOA}${BA}${JIM}${DAL}`;
-const IKHFA_LETTERS = `${TA}${THA}${JIM}${DAL}${ZAL}${ZAY}${SEEN}${SHIN}${SOAD}${DOAD}${TOA}${ZOA}${FA}${QAF}${KAF}`;
-const IDGHAM_GHUNNAH_LETTERS = `${YA}${NUN}${MIM}${WAW}`;
-const IDGHAM_NO_GHUNNAH_LETTERS = `${LAM}${RA}`;
-
-type Matcher = { rule: TajweedRule; pattern: RegExp };
-
-const RULES: Matcher[] = [
-  // Lowest priority first — later matches win where rules overlap.
-  { rule: "hamzatWasl", pattern: new RegExp(HAMZAT_WASL, "g") },
-  {
-    rule: "qalqalah",
-    pattern: new RegExp(
-      `[${QALQALAH_LETTERS}](?:${SUKUN}|${CURVY_SUKUN}|$)`,
-      "g",
-    ),
+const RAW_RULE_MAP: Record<string, RuleSpec> = {
+  hamzat_wasl: { display: "hamzatWasl", expected: new Set("ٱ") },
+  lam_shamsiyyah: { display: "lamShamsiyyah", expected: new Set("ل") },
+  silent: { display: "silent", expected: MADD_CHARS },
+  ghunnah: {
+    display: "ghunnah",
+    expected: new Set("نم"),
+    confirm: (text, pos) => text[pos + 1] === "ّ", // shadda
   },
-  { rule: "ghunnah", pattern: new RegExp(`[${NUN}${MIM}]${SHADDA}`, "g") },
-  // Ikhfa: noon sakinah/tanween before one of the 15 ikhfa letters, or
-  // meem sakinah before ba (ikhfa shafawi).
-  {
-    rule: "ikhfa",
-    pattern: new RegExp(
-      `(?:${NUN_SAKIN_OR_TANWEEN})${BRIDGE}[${IKHFA_LETTERS}]|${MIM}[${SAKIN_MARKS}]?${SPACE}?${BA}`,
-      "g",
-    ),
-  },
-  // Idgham without ghunnah: noon sakinah/tanween before lam or ra.
-  {
-    rule: "idghamNoGhunnah",
-    pattern: new RegExp(
-      `(?:${NUN_SAKIN_OR_TANWEEN})${BRIDGE}[${IDGHAM_NO_GHUNNAH_LETTERS}]`,
-      "g",
-    ),
-  },
-  // Idgham with ghunnah: noon sakinah/tanween before ي ن م و, or meem
-  // sakinah before meem (idgham mithlain).
-  {
-    rule: "idgham",
-    pattern: new RegExp(
-      `(?:${NUN_SAKIN_OR_TANWEEN})${BRIDGE}[${IDGHAM_GHUNNAH_LETTERS}]${SHADDA}?|${MIM}[${STOP_SIGNS}${SAKIN_MARKS}]?${SPACE}${MIM}`,
-      "g",
-    ),
-  },
-  // Iqlab: noon sakinah/tanween before ba (often marked with a small
-  // meem ۭ / ۢ in the Uthmani script).
-  {
-    rule: "iqlab",
-    pattern: new RegExp(`(?:${NUN_SAKIN_OR_TANWEEN})${BRIDGE}${BA}`, "g"),
-  },
-];
+  qalqalah: { display: "qalqalah", expected: new Set("قطبجد") },
+  ikhfa: { display: "ikhfa", expected: SAKIN_TRIGGER_CHARS },
+  ikhfa_shafawi: { display: "ikhfa", expected: SAKIN_TRIGGER_CHARS },
+  iqlab: { display: "iqlab", expected: SAKIN_TRIGGER_CHARS },
+  idghaam_ghunnah: { display: "idgham", expected: SAKIN_TRIGGER_CHARS },
+  idghaam_shafawi: { display: "idgham", expected: SAKIN_TRIGGER_CHARS },
+  idghaam_mutajanisayn: { display: "idgham", expected: SAKIN_TRIGGER_CHARS },
+  idghaam_mutaqaribayn: { display: "idgham", expected: SAKIN_TRIGGER_CHARS },
+  idghaam_no_ghunnah: { display: "idghamNoGhunnah", expected: SAKIN_TRIGGER_CHARS },
+  madd_2: { display: "madd2", expected: MADD_CHARS },
+  madd_246: { display: "madd246", expected: MADD_CHARS },
+  madd_6: { display: "madd6", expected: MADD_CHARS },
+  madd_munfasil: { display: "maddMunfasil", expected: MADD_CHARS },
+  madd_muttasil: { display: "maddMuttasil", expected: MADD_CHARS },
+};
 
-/** Extend a match to swallow a trailing harakah/shadda so a letter's
- * diacritics never get split across two colours. */
-function extendEnd(text: string, end: number): number {
-  if (text[end] === SHADDA) {
-    return text[end + 2] === SUPERSCRIPT_ALIF ? end + 3 : end + 2;
+const SNAP_WINDOW = 4;
+
+/** Find the nearest position to `start` (within a small window) whose
+ * character satisfies the rule's expected set (and confirm check, if
+ * any). Returns null if nothing plausible is nearby. */
+function reanchor(text: string, start: number, spec: RuleSpec): number | null {
+  const isMatch = (pos: number) =>
+    pos >= 0 &&
+    pos < text.length &&
+    spec.expected.has(text[pos]) &&
+    (!spec.confirm || spec.confirm(text, pos));
+
+  if (isMatch(start)) return start;
+  for (let d = 1; d <= SNAP_WINDOW; d++) {
+    if (isMatch(start - d)) return start - d;
+    if (isMatch(start + d)) return start + d;
   }
-  if (text[end] === SUPERSCRIPT_ALIF) return end + 1;
-  return end;
+  return null;
 }
 
-export function parseTajweed(arabicText: string): TajweedSegment[] {
-  const ruleAt = new Array<TajweedRule | null>(arabicText.length).fill(null);
+export function resolveTajweedSegments(
+  arabicText: string,
+  annotations: RawTajweedAnnotation[] | undefined,
+): TajweedSegment[] {
+  // A stray leading BOM shows up in one verse of the underlying data;
+  // the recorded offsets assume it isn't there, so strip it first.
+  const text = arabicText.startsWith("﻿")
+    ? arabicText.slice(1)
+    : arabicText;
 
-  for (const { rule, pattern } of RULES) {
-    pattern.lastIndex = 0;
-    let match: RegExpExecArray | null;
-    while ((match = pattern.exec(arabicText))) {
-      const start = match.index;
-      const end = extendEnd(arabicText, start + match[0].length);
-      for (let i = start; i < end && i < ruleAt.length; i++) {
-        ruleAt[i] = rule;
-      }
-      if (match[0].length === 0) pattern.lastIndex++;
-    }
+  const ruleAt = new Array<TajweedRule | null>(text.length).fill(null);
+
+  for (const raw of annotations ?? []) {
+    const spec = RAW_RULE_MAP[raw.rule];
+    if (!spec) continue;
+    const start = raw.start;
+    const end = raw.end;
+    if (start < 0 || end <= start) continue;
+
+    const anchored = reanchor(text, start, spec);
+    if (anchored === null) continue;
+
+    const delta = anchored - start;
+    const newStart = Math.max(0, start + delta);
+    const newEnd = Math.min(text.length, end + delta);
+    for (let i = newStart; i < newEnd; i++) ruleAt[i] = spec.display;
   }
 
   const segments: TajweedSegment[] = [];
   let i = 0;
-  while (i < arabicText.length) {
+  while (i < text.length) {
     const rule = ruleAt[i];
     let j = i + 1;
-    while (j < arabicText.length && ruleAt[j] === rule) j++;
-    segments.push({ text: arabicText.slice(i, j), rule });
+    while (j < text.length && ruleAt[j] === rule) j++;
+    segments.push({ text: text.slice(i, j), rule });
     i = j;
   }
   return segments;

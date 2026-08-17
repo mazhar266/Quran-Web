@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import { parseTajweed } from "./tajweed";
+import { resolveTajweedSegments, type RawTajweedAnnotation } from "./tajweed";
 import type { JuzMeta, SurahMeta, SurahText, TranslationLang } from "./types";
 
 const DATA_ROOT = path.join(process.cwd(), "quranjson", "source");
@@ -30,13 +30,22 @@ export function getSurahText(number: number): SurahText {
     verse: Record<string, string>;
   }>(`surah/surah_${number}.json`);
 
+  let tajweedByVerse: Record<string, RawTajweedAnnotation[]> = {};
+  try {
+    tajweedByVerse = readJson<{ verse: Record<string, RawTajweedAnnotation[]> }>(
+      `tajweed/surah_${number}.json`,
+    ).verse;
+  } catch {
+    // No tajweed annotations for this surah; verses render uncoloured.
+  }
+
   const bismillah = raw.verse.verse_0 ?? null;
   const verses = Object.entries(raw.verse)
     .filter(([key]) => key !== "verse_0")
     .map(([key, arabic]) => ({
       number: Number(key.replace("verse_", "")),
       arabic,
-      tajweed: parseTajweed(arabic),
+      tajweed: resolveTajweedSegments(arabic, tajweedByVerse[key]),
     }))
     .sort((a, b) => a.number - b.number);
 

@@ -12,13 +12,20 @@
   --accent-soft: #f0dfb8;
   --ring: #8b6914;
 
+  --tajweed-hamzat-wasl: #78716c;
+  --tajweed-lam-shamsiyyah: #64748b;
+  --tajweed-silent: #a8a29e;
   --tajweed-ghunnah: #0f8a5f;
   --tajweed-qalqalah: #b45309;
+  --tajweed-ikhfa: #92400e;
   --tajweed-iqlab: #be185d;
   --tajweed-idgham: #1d4ed8;
   --tajweed-idgham-no-ghunnah: #6d28d9;
-  --tajweed-ikhfa: #92400e;
-  --tajweed-hamzat-wasl: #78716c;
+  --tajweed-madd-2: #ca8a04;
+  --tajweed-madd-246: #ea580c;
+  --tajweed-madd-6: #b91c1c;
+  --tajweed-madd-munfasil: #db2777;
+  --tajweed-madd-muttasil: #7c2d12;
 }
 
 [data-theme="light"] {
@@ -46,13 +53,20 @@
   --accent-soft: #3a3020;
   --ring: #d4af37;
 
+  --tajweed-hamzat-wasl: #9ca3af;
+  --tajweed-lam-shamsiyyah: #94a3b8;
+  --tajweed-silent: #d6d3d1;
   --tajweed-ghunnah: #34d399;
   --tajweed-qalqalah: #fbbf24;
+  --tajweed-ikhfa: #fcd34d;
   --tajweed-iqlab: #f472b6;
   --tajweed-idgham: #60a5fa;
   --tajweed-idgham-no-ghunnah: #a78bfa;
-  --tajweed-ikhfa: #fcd34d;
-  --tajweed-hamzat-wasl: #9ca3af;
+  --tajweed-madd-2: #fde047;
+  --tajweed-madd-246: #fb923c;
+  --tajweed-madd-6: #f87171;
+  --tajweed-madd-munfasil: #f9a8d4;
+  --tajweed-madd-muttasil: #fdba74;
 }
 
 @theme inline {
@@ -129,11 +143,23 @@ body {
   color: var(--surface);
 }
 
+.tajweed-on [data-rule="hamzatWasl"] {
+  color: var(--tajweed-hamzat-wasl);
+}
+.tajweed-on [data-rule="lamShamsiyyah"] {
+  color: var(--tajweed-lam-shamsiyyah);
+}
+.tajweed-on [data-rule="silent"] {
+  color: var(--tajweed-silent);
+}
 .tajweed-on [data-rule="ghunnah"] {
   color: var(--tajweed-ghunnah);
 }
 .tajweed-on [data-rule="qalqalah"] {
   color: var(--tajweed-qalqalah);
+}
+.tajweed-on [data-rule="ikhfa"] {
+  color: var(--tajweed-ikhfa);
 }
 .tajweed-on [data-rule="iqlab"] {
   color: var(--tajweed-iqlab);
@@ -144,11 +170,20 @@ body {
 .tajweed-on [data-rule="idghamNoGhunnah"] {
   color: var(--tajweed-idgham-no-ghunnah);
 }
-.tajweed-on [data-rule="ikhfa"] {
-  color: var(--tajweed-ikhfa);
+.tajweed-on [data-rule="madd2"] {
+  color: var(--tajweed-madd-2);
 }
-.tajweed-on [data-rule="hamzatWasl"] {
-  color: var(--tajweed-hamzat-wasl);
+.tajweed-on [data-rule="madd246"] {
+  color: var(--tajweed-madd-246);
+}
+.tajweed-on [data-rule="madd6"] {
+  color: var(--tajweed-madd-6);
+}
+.tajweed-on [data-rule="maddMunfasil"] {
+  color: var(--tajweed-madd-munfasil);
+}
+.tajweed-on [data-rule="maddMuttasil"] {
+  color: var(--tajweed-madd-muttasil);
 }
 
 ::selection {
