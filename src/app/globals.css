@@ -138,6 +138,31 @@ body {
   background: var(--surface);
 }
 
+.ruled-lines-mushaf,
+.ruled-lines-verse {
+  background-repeat: repeat-y;
+}
+
+.ruled-lines-mushaf {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(2.35em - 1px),
+    var(--border) calc(2.35em - 1px),
+    var(--border) 2.35em
+  );
+}
+
+.ruled-lines-verse {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent calc(1.9em - 1px),
+    var(--border) calc(1.9em - 1px),
+    var(--border) 1.9em
+  );
+}
+
 .ayah-marker[data-active="true"] {
   background: var(--accent);
   color: var(--surface);

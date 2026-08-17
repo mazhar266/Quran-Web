@@ -49,7 +49,7 @@ export function VerseView({
     return (
       <div
         dir="rtl"
-        className={`${arabicClassName} mushaf-border bg-surface px-5 py-8 text-justify text-foreground sm:px-8 sm:py-10 ${
+        className={`${arabicClassName} mushaf-border ruled-lines-mushaf bg-surface px-5 py-8 text-justify text-foreground sm:px-8 sm:py-10 ${
           tajweedEnabled ? "tajweed-on" : ""
         }`}
         style={{ fontSize: `${fontSize}rem`, lineHeight: 2.35 }}
@@ -104,7 +104,7 @@ export function VerseView({
             </button>
             <p
               dir="rtl"
-              className={`${arabicClassName} flex-1 text-right text-foreground ${
+              className={`${arabicClassName} ruled-lines-verse flex-1 text-right text-foreground ${
                 tajweedEnabled ? "tajweed-on" : ""
               }`}
               style={{ fontSize: `${fontSize}rem`, lineHeight: 1.9 }}
