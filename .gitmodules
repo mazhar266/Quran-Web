@@ -1,0 +1,3 @@
+[submodule "quranjson"]
+	path = quranjson
+	url = git@github.com:semarketir/quranjson.git
