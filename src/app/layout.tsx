@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Mushaf — Read the Qur'an",
+  title: "Al Mushaf — Read the Qur'an",
   description:
     "A calm, mobile-friendly space to read the Qur'an with a choice of authentic Mushaf scripts, translations, and verse-by-verse recitation.",
 };

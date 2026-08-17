@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getJuzList, getSurahList } from "@/lib/quran-data";
 import { HomeBrowser } from "@/components/home/home-browser";
 import { getArabicFontClassName } from "@/lib/fonts";
@@ -15,7 +16,7 @@ export default function Home() {
             مصحف
           </p>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Mushaf
+            Al Mushaf
           </h1>
           <p className="max-w-sm text-sm text-muted">
             A calm space to read the Qur&apos;an — choose your Mushaf script,
@@ -24,6 +25,15 @@ export default function Home() {
         </header>
 
         <HomeBrowser surahs={surahs} juzList={juzList} />
+
+        <footer className="pt-4 text-center">
+          <Link
+            href="/about"
+            className="text-xs text-muted underline underline-offset-2 hover:text-foreground"
+          >
+            About &amp; credits
+          </Link>
+        </footer>
       </div>
     </div>
   );
